@@ -3,6 +3,7 @@
 const styles = {
     file: "content.css"
   , allFrames: true
+  , cssOrigin: "user"
 };
 
 browser.runtime.onMessage.addListener((msg, sender) => {

@@ -108,6 +108,13 @@ window.addEventListener("input", on_input);
 window.addEventListener("paste", on_input);
 window.addEventListener("cut", on_input);
 
+// Show cursor when input focus changes
+window.addEventListener("focusout", ev => {
+    browser.runtime.sendMessage({
+        subject: "show_cursor"
+    });
+});
+
 // Show cursor on tab change
 window.addEventListener("blur", ev => {
     browser.runtime.sendMessage({

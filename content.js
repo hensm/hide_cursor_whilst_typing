@@ -7,9 +7,45 @@
  */
 let pending_input = null;
 
+/**
+ * If an event handler within the page calls stopPropagation,
+ * the event doesn't bubble to the global event handler, so
+ * individual event handlers are set on the inputs.
+ */
+let has_event_set = false;
+
 window.addEventListener("keypress", ev => {
     const focused_el = document.querySelector(":focus");
     pending_input = focused_el || null;
+
+    if (pending_input) {
+        pending_input.addEventListener("input", on_input);
+        has_event_set = true;
+    }
+});
+
+
+/**
+ * If an event handler within the page calls
+ * stopImmediatePropagation, the event never reaches the
+ * extension's event handlers. So, all calls to
+ * stopImmediatePropagation are intercepted and the event is
+ * forwarded if appropriate.
+ */
+const intercept_target = Event.prototype.stopImmediatePropagation;
+const intercept = function () {
+    // Call original function
+    intercept_target.apply(this, arguments);
+
+    // If keypress registered and event set for this target
+    if (this.target === pending_input && has_event_set) {
+        on_input(this);
+    }
+};
+
+// Page has a different context
+exportFunction(intercept, Event.prototype, {
+    defineAs: "stopImmediatePropagation"
 });
 
 
@@ -40,9 +76,20 @@ function on_mouse_event (ev) {
  * before hiding the cursor.
  */
 function on_input (ev) {
-    if (pending_input && ev.target === pending_input) {
-        pending_input = null;
+    const from_pending_input = pending_input && ev.target === pending_input;
+    const from_design_mode = ev.target === document.body
+            && document.designMode === "on";
 
+    if (has_event_set) {
+        pending_input.removeEventListener("input", on_input);
+        has_event_set = false;
+    }
+
+    if (from_pending_input) {
+        pending_input = null;
+    }
+
+    if (from_pending_input || from_design_mode) {
         browser.runtime.sendMessage({
             subject: "hide_cursor"
         });

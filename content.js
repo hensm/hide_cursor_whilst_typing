@@ -37,6 +37,9 @@ const intercept = function () {
     // Call original function
     intercept_target.apply(this, arguments);
 
+    // Only catch input events
+    if (this.type !== "input") return;
+
     // If keypress registered and event set for this target
     if (this.target === pending_input && has_event_set) {
         on_input(this);
